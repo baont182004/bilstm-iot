@@ -1,12 +1,7 @@
-// src/components/AnalyticsPanel.jsx
+// frontend/src/components/AnalyticsPanel.jsx
 import React, { useMemo } from "react";
 
-export default function AnalyticsPanel({
-    history,
-    threshold,
-    aiAnalysis,
-    smartThreshold,
-}) {
+export default function AnalyticsPanel({ history, threshold, aiAnalysis }) {
     const stats = useMemo(() => {
         if (!history || history.length === 0) return null;
 
@@ -16,20 +11,15 @@ export default function AnalyticsPanel({
         const max = Math.max(...values);
         const sum = values.reduce((a, b) => a + b, 0);
         const mean = sum / n;
-
         const above = values.filter((v) => v > threshold).length;
         const abovePct = (above / n) * 100;
 
-        return {
-            n,
-            min,
-            max,
-            mean,
-            abovePct,
-        };
+        return { n, min, max, mean, abovePct };
     }, [history, threshold]);
 
     const ai = aiAnalysis?.ai;
+    const system = aiAnalysis?.system;
+
     const probPercent =
         ai && typeof ai.prob_leak === "number"
             ? (ai.prob_leak * 100).toFixed(1)
@@ -56,8 +46,7 @@ export default function AnalyticsPanel({
                         style={{
                             marginTop: 8,
                             display: "grid",
-                            gridTemplateColumns:
-                                "repeat(auto-fit, minmax(150px, 1fr))",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
                             gap: 8,
                         }}
                     >
@@ -78,12 +67,16 @@ export default function AnalyticsPanel({
                             label="% > ngưỡng Blynk"
                             value={stats.abovePct.toFixed(1) + " %"}
                         />
-                        {smartThreshold && (
+
+                        {aiAnalysis?.dynamicThreshold && (
                             <StatBox
-                                label="Ngưỡng AI gợi ý"
-                                value={Math.round(smartThreshold) + " ppm"}
+                                label="Ngưỡng AI (mean + 3σ)"
+                                value={
+                                    Math.round(aiAnalysis.dynamicThreshold) + " ppm"
+                                }
                             />
                         )}
+
                         {probPercent && (
                             <StatBox
                                 label="P(rò rỉ | chuỗi mới nhất)"
@@ -92,20 +85,10 @@ export default function AnalyticsPanel({
                         )}
                     </div>
 
-                    {ai && (
+                    {system && (
                         <div style={{ marginTop: 12, fontSize: 13 }}>
-                            BiLSTM dự đoán chuỗi mới nhất là:{" "}
-                            <b
-                                style={{
-                                    color:
-                                        ai.label === 1
-                                            ? "#ef4444"
-                                            : "#22c55e",
-                                }}
-                            >
-                                {ai.label === 1 ? "LEAK" : "NORMAL"}
-                            </b>{" "}
-                            (prob = {probPercent}%)
+                            <b>Diễn giải trạng thái:</b>{" "}
+                            {system.message}
                         </div>
                     )}
                 </>
@@ -125,7 +108,7 @@ function StatBox({ label, value }) {
             }}
         >
             <div style={{ fontSize: 12, opacity: 0.7 }}>{label}</div>
-            <div style={{ marginTop: 2, fontWeight: "600" }}>{value}</div>
+            <div style={{ marginTop: 2, fontWeight: 600 }}>{value}</div>
         </div>
     );
 }
