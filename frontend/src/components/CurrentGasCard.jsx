@@ -8,8 +8,18 @@ function getStatus(gas, threshold = 300) {
     return { text: "Nguy hiểm!", color: "#ef4444" };
 }
 
-export default function CurrentGasCard({ gas, threshold, timestamp }) {
+export default function CurrentGasCard({
+    gas,
+    threshold,
+    timestamp,
+    smartThreshold,
+    ai,
+}) {
     const { text, color } = getStatus(gas, threshold);
+
+    const aiProb = ai ? (ai.prob_leak * 100).toFixed(1) : null;
+    const aiLabel =
+        ai && ai.label === 1 ? "BiLSTM: NGUY CƠ RÒ RỈ" : "BiLSTM: An toàn";
 
     return (
         <div
@@ -26,18 +36,46 @@ export default function CurrentGasCard({ gas, threshold, timestamp }) {
                 {gas != null ? gas.toFixed(1) : "..."}{" "}
                 <span style={{ fontSize: 18 }}>ppm</span>
             </div>
+
             <div style={{ marginTop: 8 }}>
-                Trạng thái:{" "}
+                Trạng thái (ngưỡng Blynk):{" "}
                 <span style={{ fontWeight: "bold", color: color }}>{text}</span>
             </div>
+
             {timestamp && (
                 <div style={{ marginTop: 4, fontSize: 12, opacity: 0.7 }}>
                     Cập nhật: {new Date(timestamp).toLocaleTimeString()}
                 </div>
             )}
+
             {threshold && (
                 <div style={{ marginTop: 4, fontSize: 12, opacity: 0.7 }}>
-                    Ngưỡng cảnh báo đang dùng: {threshold} ppm
+                    Ngưỡng cảnh báo (Blynk): {threshold} ppm
+                </div>
+            )}
+
+            {smartThreshold && (
+                <div style={{ marginTop: 4, fontSize: 12, opacity: 0.7 }}>
+                    Ngưỡng thông minh gợi ý:{" "}
+                    {Math.round(smartThreshold)} ppm
+                </div>
+            )}
+
+            {ai && (
+                <div style={{ marginTop: 8, fontSize: 13 }}>
+                    <div>
+                        Xác suất rò rỉ (BiLSTM):{" "}
+                        <b>{aiProb != null ? `${aiProb}%` : "—"}</b>
+                    </div>
+                    <div
+                        style={{
+                            marginTop: 2,
+                            fontWeight: "bold",
+                            color: ai.label === 1 ? "#ef4444" : "#22c55e",
+                        }}
+                    >
+                        {aiLabel}
+                    </div>
                 </div>
             )}
         </div>

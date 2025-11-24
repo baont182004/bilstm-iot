@@ -11,7 +11,7 @@ import {
     ReferenceLine,
 } from "recharts";
 
-export default function GasChart({ data, threshold }) {
+export default function GasChart({ data, threshold, smartThreshold }) {
     const formatted = (data || []).map((d) => ({
         gas: d.gas,
         time: d.timestamp ? new Date(d.timestamp).toLocaleTimeString() : "",
@@ -47,7 +47,15 @@ export default function GasChart({ data, threshold }) {
                                 y={threshold}
                                 stroke="#ef4444"
                                 strokeDasharray="4 4"
-                                label="Ngưỡng cảnh báo"
+                                label="Ngưỡng Blynk"
+                            />
+                        )}
+                        {smartThreshold && (
+                            <ReferenceLine
+                                y={smartThreshold}
+                                stroke="#22c55e"
+                                strokeDasharray="3 3"
+                                label="Ngưỡng AI"
                             />
                         )}
                     </LineChart>

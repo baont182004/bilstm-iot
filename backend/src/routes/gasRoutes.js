@@ -2,17 +2,19 @@
 import express from "express";
 import {
     createGasReading,
-    getLatestGas,
-    getGasHistory,
+    getLatestGasReadings,
+    getGasAnalysis,
 } from "../controllers/gasController.js";
 
 const router = express.Router();
 
+// ESP8266 gửi dữ liệu gas lên
 router.post("/", createGasReading);
 
-router.get("/latest", getLatestGas);
+// Frontend lấy lịch sử mới nhất để vẽ biểu đồ
+router.get("/latest", getLatestGasReadings);
 
-
-router.get("/history", getGasHistory);
+// Frontend lấy phân tích AI + ngưỡng thông minh
+router.get("/analysis", getGasAnalysis);
 
 export default router;

@@ -6,9 +6,13 @@ const API_BASE_URL =
 
 console.log("[gasApi] API_BASE_URL =", API_BASE_URL);
 
+/**
+ * Lấy dữ liệu gas mới nhất để vẽ biểu đồ.
+ * Trả về: { latest, history }
+ */
 export const fetchGasData = async (limit = 500) => {
     const url = `${API_BASE_URL}/api/gas/latest`;
-    console.log("[gasApi] GET", url, "limit=", limit);
+    console.log("[gasApi] GET", url, "limit =", limit);
 
     const res = await axios.get(url, { params: { limit } });
 
@@ -25,7 +29,19 @@ export const fetchGasData = async (limit = 500) => {
 
     const latest = history.length > 0 ? history[history.length - 1] : null;
 
-    console.log("[gasApi] history length =", history.length, "latest =", latest);
+    console.log(
+        "[gasApi] history length =",
+        history.length,
+        "latest =",
+        latest
+    );
 
     return { latest, history };
+};
+export const fetchGasAnalysis = async () => {
+    const url = `${API_BASE_URL}/api/gas/analysis`;
+    console.log("[gasApi] GET", url);
+
+    const res = await axios.get(url);
+    return res.data;
 };
