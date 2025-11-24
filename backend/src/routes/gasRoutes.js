@@ -2,15 +2,17 @@
 import express from "express";
 import {
     createGasReading,
-    getLatestGasReadings,
+    getLatestGas,
+    getGasHistory,
 } from "../controllers/gasController.js";
 
 const router = express.Router();
 
-
 router.post("/", createGasReading);
 
+router.get("/latest", getLatestGas);
 
-router.get("/latest", getLatestGasReadings);
+
+router.get("/history", getGasHistory);
 
 export default router;
