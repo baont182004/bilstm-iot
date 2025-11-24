@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { fetchGasData } from "../api/gasApi.js";
 
-import CurrentGasCard from "../components/CurrentGasCard.jsx";
-import GasChart from "../components/GasChart.jsx";
-import AnalyticsPanel from "../components/AnalyticsPanel.jsx";
+import { fetchGasData } from "../api/gasApi";
+
+import CurrentGasCard from "../components/CurrentGasCard";
+import GasChart from "../components/GasChart";
+import AnalyticsPanel from "../components/AnalyticsPanel";
 
 const POLL_MS = 2000;
 const THRESHOLD_DEFAULT = 300;
