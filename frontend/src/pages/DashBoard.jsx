@@ -73,10 +73,10 @@ export default function Dashboard() {
                     marginBottom: 16,
                 }}
             >
-                Gas Detector Analytics
+                Bảng theo dõi khí gas
             </h1>
 
-            {/* Hàng trên: current card + system info (có thể mở rộng sau) */}
+            {/* Hàng trên: card hiện tại + mô tả hệ thống */}
             <div
                 style={{
                     display: "grid",
@@ -98,7 +98,7 @@ export default function Dashboard() {
                         padding: 16,
                         borderRadius: 12,
                         background: "#020617",
-                        border: "1px solid #1f2937",
+                        border: '1px solid #1f2937',
                         fontSize: 13,
                         display: "flex",
                         flexDirection: "column",
@@ -112,30 +112,29 @@ export default function Dashboard() {
                             marginBottom: 4,
                         }}
                     >
-                        Trạng thái hệ thống
+                        Tình trạng hệ thống
                     </div>
                     <div>
-                        • Backend đang trả dữ liệu từ{" "}
-                        <code>/api/gas/latest</code>,{" "}
-                        <code>/api/gas/analysis</code> và{" "}
-                        <code>/api/gas/incidents/24h</code>.
+                        • Hệ thống đang nhận dữ liệu liên tục từ cảm biến gas
+                        và cập nhật mỗi giây.
                     </div>
                     <div>
-                        • Ngưỡng Blynk (V2) hiện tại:{" "}
+                        • Ngưỡng cảnh báo Blynk hiện tại:{" "}
                         <strong>{hardThreshold} ppm</strong>.
                     </div>
                     <div>
-                        • Ngưỡng AI (mean + 3σ, clamp):{" "}
+                        • Ngưỡng cảnh báo do AI đề xuất:{" "}
                         <strong>
                             {smartThreshold == null
-                                ? "—"
+                                ? "Chưa có"
                                 : `${smartThreshold.toFixed(1)} ppm`}
-                        </strong>{"."}
+                        </strong>
+                        .
                     </div>
                     <div>
-                        • BiLSTM đang đánh giá chuỗi {aiAnalysis?.seqLen ?? "—"}{" "}
-                        mẫu với xác suất rò rỉ được cập nhật theo thời gian
-                        thực.
+                        • AI phân tích chuỗi{" "}
+                        <strong>{aiAnalysis?.seqLen ?? "—"}</strong> lần đo gần
+                        nhất để phát hiện dấu hiệu rò rỉ sớm.
                     </div>
                 </div>
             </div>
@@ -153,6 +152,6 @@ export default function Dashboard() {
                 aiAnalysis={aiAnalysis}
                 incidentSummary={incidentSummary}
             />
-        </div>
+        </div >
     );
 }

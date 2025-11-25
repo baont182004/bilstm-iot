@@ -125,7 +125,7 @@ export default function AnalyticsPanel({
                 gap: 16,
             }}
         >
-            {/* Khối trái: thống kê real-time + AI */}
+            {/* Bên trái: tóm tắt trong khung thời gian đang xem */}
             <div
                 style={{
                     padding: 16,
@@ -143,7 +143,7 @@ export default function AnalyticsPanel({
                         fontWeight: 600,
                     }}
                 >
-                    Thống kê cửa sổ hiện tại
+                    Tóm tắt dữ liệu đang hiển thị
                 </div>
 
                 {historyStats ? (
@@ -156,22 +156,22 @@ export default function AnalyticsPanel({
                         }}
                     >
                         <StatCard
-                            label="Số mẫu trong cửa sổ"
+                            label="Số lần đo"
                             value={historyStats.n}
                         />
                         <StatCard
-                            label="Gas min / max"
+                            label="Nhỏ nhất / lớn nhất"
                             value={`${historyStats.min.toFixed(
                                 1
                             )} – ${historyStats.max.toFixed(1)} ppm`}
                         />
                         <StatCard
-                            label="Gas trung bình"
+                            label="Giá trị trung bình"
                             value={`${historyStats.mean.toFixed(1)} ppm`}
                         />
                         <StatCard
-                            label={`% mẫu vượt ngưỡng Blynk (${threshold} ppm)`}
-                            value={`${historyStats.above} mẫu (${historyStats.abovePct.toFixed(
+                            label={`Tỷ lệ thời điểm vượt ngưỡng Blynk (${threshold} ppm)`}
+                            value={`${historyStats.above} lần (${historyStats.abovePct.toFixed(
                                 1
                             )}%)`}
                         />
@@ -195,7 +195,7 @@ export default function AnalyticsPanel({
                     }}
                 >
                     <StatCard
-                        label="Ngưỡng AI (mean + 3σ, clamp)"
+                        label="Ngưỡng cảnh báo do AI đề xuất"
                         value={
                             smartT != null
                                 ? `${smartT.toFixed(1)} ppm`
@@ -203,7 +203,7 @@ export default function AnalyticsPanel({
                         }
                     />
                     <StatCard
-                        label="Baseline NORMAL (mean)"
+                        label="Mức gas bình thường trung bình"
                         value={
                             baseline?.mean != null
                                 ? `${baseline.mean.toFixed(1)} ppm`
@@ -211,7 +211,7 @@ export default function AnalyticsPanel({
                         }
                     />
                     <StatCard
-                        label="Độ lệch chuẩn NORMAL (σ)"
+                        label="Độ dao động khí gas"
                         value={
                             baseline?.std != null
                                 ? `${baseline.std.toFixed(2)}`
@@ -219,17 +219,17 @@ export default function AnalyticsPanel({
                         }
                     />
                     <StatCard
-                        label="Độ dài chuỗi AI (BiLSTM)"
+                        label="Số điểm AI dùng để phân tích chuỗi"
                         value={
                             aiAnalysis?.seqLen
-                                ? `${aiAnalysis.seqLen} mẫu`
+                                ? `${aiAnalysis.seqLen} lần đo`
                                 : "—"
                         }
                     />
                 </div>
             </div>
 
-            {/* Khối phải: chuỗi rò rỉ 24h gần nhất */}
+            {/* Bên phải: nhật ký rò rỉ trong 24 giờ qua */}
             <div
                 style={{
                     padding: 16,
@@ -248,7 +248,7 @@ export default function AnalyticsPanel({
                         fontWeight: 600,
                     }}
                 >
-                    Thống kê chuỗi rò rỉ (24h gần nhất)
+                    Nhật ký rò rỉ (24 giờ gần nhất)
                 </div>
 
                 {incidentStats ? (
@@ -262,12 +262,12 @@ export default function AnalyticsPanel({
                             }}
                         >
                             <StatCard
-                                label="Tổng số chuỗi bất thường"
+                                label="Tổng số lần bất thường"
                                 value={incidentStats.total}
                                 highlight="#eab308"
                             />
                             <StatCard
-                                label="Chuỗi mức DANGER"
+                                label="Số lần ở mức nguy hiểm"
                                 value={incidentStats.danger}
                                 highlight="#ef4444"
                             />
@@ -277,7 +277,7 @@ export default function AnalyticsPanel({
                                 highlight="#38bdf8"
                             />
                             <StatCard
-                                label="Khoảng quan sát"
+                                label="Khoảng thời gian hiển thị"
                                 value={`${formatDateTime(
                                     incidentStats.from
                                 )} → ${formatDateTime(incidentStats.to)}`}
@@ -291,7 +291,7 @@ export default function AnalyticsPanel({
                                 opacity: 0.8,
                             }}
                         >
-                            5 chuỗi gần nhất:
+                            5 lần bất thường gần nhất:
                         </div>
 
                         <div
@@ -317,8 +317,8 @@ export default function AnalyticsPanel({
                                 <div>Bắt đầu</div>
                                 <div>Kết thúc</div>
                                 <div>Thời lượng (phút)</div>
-                                <div>Gas max (ppm)</div>
-                                <div>P(rò rỉ) max</div>
+                                <div>Gas cao nhất</div>
+                                <div>AI đánh giá cao nhất</div>
                                 <div>Mức</div>
                             </div>
 
@@ -329,7 +329,8 @@ export default function AnalyticsPanel({
                                         opacity: 0.7,
                                     }}
                                 >
-                                    Không có chuỗi nào trong 24h gần nhất.
+                                    Không có lần bất thường nào trong 24 giờ
+                                    gần nhất.
                                 </div>
                             ) : (
                                 incidentStats.list.map((i) => (
@@ -388,7 +389,7 @@ export default function AnalyticsPanel({
                     </>
                 ) : (
                     <div style={{ fontSize: 13, opacity: 0.7 }}>
-                        Đang tải thống kê chuỗi rò rỉ trong 24 giờ gần nhất...
+                        Đang tải dữ liệu nhật ký rò rỉ...
                     </div>
                 )}
             </div>

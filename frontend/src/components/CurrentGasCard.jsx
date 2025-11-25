@@ -2,9 +2,9 @@
 import React from "react";
 
 function getStatusByThreshold(gas, threshold = 300) {
-    if (gas == null) return { text: "Đang tải...", color: "#9ca3af" };
+    if (gas == null) return { text: "Đang nhận dữ liệu...", color: "#9ca3af" };
     if (gas < threshold * 0.7) return { text: "An toàn", color: "#22c55e" };
-    if (gas < threshold) return { text: "Cảnh giác", color: "#eab308" };
+    if (gas < threshold) return { text: "Cần để ý thêm", color: "#eab308" };
     return { text: "Nguy hiểm!", color: "#ef4444" };
 }
 
@@ -17,6 +17,25 @@ function formatTime(ts) {
         minute: "2-digit",
         second: "2-digit",
     });
+}
+
+function prettySystemMode(mode) {
+    switch (mode) {
+        case "NORMAL":
+            return "Bình thường";
+        case "EARLY_WARNING":
+            return "Cảnh báo sớm";
+        case "HIGH_GAS":
+            return "Nồng độ cao";
+        case "LEAK_CONFIRMED":
+            return "Rò rỉ mạnh";
+        case "NO_DATA":
+            return "Chưa đủ dữ liệu";
+        case "NO_AI":
+            return "AI đang tạm tắt";
+        default:
+            return mode || "—";
+    }
 }
 
 export default function CurrentGasCard({
@@ -77,16 +96,16 @@ export default function CurrentGasCard({
                 }}
             >
                 <div style={{ marginBottom: 4 }}>
-                    Trạng thái (ngưỡng Blynk):{" "}
+                    Trạng thái theo ngưỡng Blynk:{" "}
                     <span style={{ fontWeight: 600, color: status.color }}>
                         {status.text}
                     </span>
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.85 }}>
-                    Ngưỡng cảnh báo đang dùng (Blynk):{" "}
+                    Ngưỡng cảnh báo Blynk:{" "}
                     <strong>{hardThreshold ?? 300} ppm</strong>
                     <br />
-                    Ngưỡng AI gợi ý:{" "}
+                    Ngưỡng cảnh báo do AI đề xuất:{" "}
                     <strong>
                         {smartThreshold != null
                             ? `${smartThreshold.toFixed(0)} ppm`
@@ -106,7 +125,7 @@ export default function CurrentGasCard({
                 }}
             >
                 <div>
-                    Xác suất rò rỉ (BiLSTM):{" "}
+                    Đánh giá rò rỉ từ AI:{" "}
                     <span style={{ fontWeight: 600, color: probColor }}>
                         {probPercent}
                     </span>
@@ -114,15 +133,14 @@ export default function CurrentGasCard({
 
                 {system && (
                     <div style={{ marginTop: 4 }}>
-                        Trạng thái hệ thống (tổng hợp):{" "}
+                        Trạng thái chung của hệ thống:{" "}
                         <span
                             style={{
                                 fontWeight: 700,
                                 color: systemColor,
-                                textTransform: "uppercase",
                             }}
                         >
-                            {system.mode}
+                            {prettySystemMode(system.mode)}
                         </span>
                         <div
                             style={{

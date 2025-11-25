@@ -278,17 +278,16 @@ export const getGasAnalysis = async (req, res) => {
 
 
 };
-
 // Lấy danh sách chuỗi rò rỉ trong 24h gần nhất
 export const getLeakIncidents24h = async (req, res) => {
     try {
         const { deviceId } = req.query;
 
         const now = new Date();
-        const from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const windowFrom = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
         const query = {
-            startTime: { $gte: from },
+            startTime: { $gte: windowFrom },
             // chỉ lấy các mode có liên quan rò rỉ
             mode: { $in: ["LEAK_CONFIRMED", "EARLY_WARNING", "HIGH_GAS"] },
         };
@@ -299,7 +298,16 @@ export const getLeakIncidents24h = async (req, res) => {
 
         const incidents = await GasIncident.find(query).sort({ startTime: -1 });
 
-        // Một vài thống kê nhanh
+        // mặc định: dùng cửa sổ 24h
+        let from = windowFrom;
+        let to = now;
+
+        if (incidents.length > 0) {
+            const latest = incidents[0];
+            from = latest.startTime || windowFrom;
+            to = latest.endTime || now;
+        }
+
         const total = incidents.length;
         const totalDanger = incidents.filter(
             (i) => i.severity === "DANGER"
@@ -311,7 +319,7 @@ export const getLeakIncidents24h = async (req, res) => {
 
         return res.json({
             from,
-            to: now,
+            to,
             totalIncidents: total,
             dangerIncidents: totalDanger,
             maxGasPeak,
@@ -322,3 +330,4 @@ export const getLeakIncidents24h = async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
+
