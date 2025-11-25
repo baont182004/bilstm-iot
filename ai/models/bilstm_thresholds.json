@@ -1,5 +1,5 @@
 {
-  "decision_threshold": 0.5,
-  "safe_gas_threshold_ppm": 28.611023417309294,
+  "decision_threshold": 0.69,
+  "safe_gas_threshold_ppm": 28.524534181763354,
   "safe_gas_quantile": 0.95
 }
