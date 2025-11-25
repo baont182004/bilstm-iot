@@ -1,6 +1,10 @@
 // frontend/src/pages/DashBoard.jsx
 import React, { useEffect, useState } from "react";
-import { fetchGasData, fetchGasAnalysis } from "../api/gasApi";
+import {
+    fetchGasData,
+    fetchGasAnalysis,
+    fetchLeakIncidents24h,
+} from "../api/gasApi";
 
 import CurrentGasCard from "../components/CurrentGasCard";
 import GasChart from "../components/GasChart";
@@ -14,34 +18,30 @@ export default function Dashboard() {
     const [history, setHistory] = useState([]);
 
     const [hardThreshold, setHardThreshold] = useState(THRESHOLD_DEFAULT);
-    const [smartThreshold, setSmartThreshold] = useState(THRESHOLD_DEFAULT);
-
+    const [smartThreshold, setSmartThreshold] = useState(null);
     const [aiAnalysis, setAiAnalysis] = useState(null);
+    const [incidentSummary, setIncidentSummary] = useState(null);
 
     const loadAll = async () => {
         try {
-            // 1) Lịch sử để vẽ chart
-            const { latest, history } = await fetchGasData(500);
-            setLatest(latest);
-            setHistory(history);
+            const [gasRes, analysis, incidents] = await Promise.all([
+                fetchGasData(500),
+                fetchGasAnalysis(),
+                fetchLeakIncidents24h(),
+            ]);
 
-            // 2) Phân tích AI
-            try {
-                const analysis = await fetchGasAnalysis();
+            setLatest(gasRes.latest);
+            setHistory(gasRes.history);
+
+            if (analysis) {
+                setHardThreshold(
+                    analysis.hardThreshold ?? THRESHOLD_DEFAULT
+                );
+                setSmartThreshold(analysis.dynamicThreshold ?? null);
                 setAiAnalysis(analysis);
-
-                if (
-                    analysis &&
-                    typeof analysis.dynamicThreshold === "number"
-                ) {
-                    setSmartThreshold(analysis.dynamicThreshold);
-                }
-                if (analysis && typeof analysis.hardThreshold === "number") {
-                    setHardThreshold(analysis.hardThreshold);
-                }
-            } catch (err) {
-                console.error("Lỗi gọi /api/gas/analysis:", err);
             }
+
+            setIncidentSummary(incidents);
         } catch (err) {
             console.error("Lỗi tải dữ liệu gas:", err);
         }
@@ -53,84 +53,94 @@ export default function Dashboard() {
         return () => clearInterval(id);
     }, []);
 
-    const system = aiAnalysis?.system;
+    const currentGas = latest?.gas ?? null;
+    const currentTs = latest?.timestamp ?? null;
 
     return (
         <div
             style={{
                 minHeight: "100vh",
                 background: "#020617",
-                color: "#f9fafb",
-                padding: 24,
+                color: "#e5e7eb",
+                padding: 16,
+                boxSizing: "border-box",
             }}
         >
-            <h1 style={{ marginBottom: 16 }}>Gas Detector Analytics</h1>
+            <h1
+                style={{
+                    fontSize: 22,
+                    fontWeight: 700,
+                    marginBottom: 16,
+                }}
+            >
+                Gas Detector Analytics
+            </h1>
 
+            {/* Hàng trên: current card + system info (có thể mở rộng sau) */}
             <div
                 style={{
                     display: "grid",
+                    gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.3fr)",
                     gap: 16,
-                    gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr)",
                 }}
             >
                 <CurrentGasCard
-                    gas={latest?.gas}
-                    timestamp={latest?.timestamp}
+                    gas={currentGas}
+                    timestamp={currentTs}
                     hardThreshold={hardThreshold}
                     smartThreshold={smartThreshold}
                     ai={aiAnalysis?.ai}
-                    system={system}
+                    system={aiAnalysis?.system}
                 />
 
                 <div
                     style={{
                         padding: 16,
                         borderRadius: 12,
-                        background: "#111827",
-                        boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
-                        fontSize: 14,
+                        background: "#020617",
+                        border: "1px solid #1f2937",
+                        fontSize: 13,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
                     }}
                 >
-                    <h2>Trạng thái hệ thống</h2>
-                    <ul style={{ marginTop: 8, paddingLeft: 20 }}>
-                        <li>
-                            Backend đang trả dữ liệu từ{" "}
-                            <code>/api/gas/latest</code> và{" "}
-                            <code>/api/gas/analysis</code>.
-                        </li>
-                        <li>
-                            <b>Ngưỡng Blynk</b> (V2) hiện tại:{" "}
-                            <b>{hardThreshold} ppm</b>.
-                        </li>
-                        <li>
-                            <b>Ngưỡng AI</b> (mean + 3σ, clamp) đang gợi ý:{" "}
-                            <b>{Math.round(smartThreshold)} ppm</b>.
-                        </li>
-                        {system && (
-                            <li style={{ marginTop: 8 }}>
-                                <b>Trạng thái tổng hợp:</b>{" "}
-                                <span
-                                    style={{
-                                        fontWeight: "bold",
-                                        color:
-                                            system.severity === "DANGER"
-                                                ? "#ef4444"
-                                                : system.severity === "WARNING"
-                                                    ? "#eab308"
-                                                    : "#22c55e",
-                                    }}
-                                >
-                                    {system.mode}
-                                </span>
-                                <div style={{ marginTop: 4, opacity: 0.85 }}>
-                                    {system.message}
-                                </div>
-                            </li>
-                        )}
-                    </ul>
+                    <div
+                        style={{
+                            fontSize: 16,
+                            fontWeight: 600,
+                            marginBottom: 4,
+                        }}
+                    >
+                        Trạng thái hệ thống
+                    </div>
+                    <div>
+                        • Backend đang trả dữ liệu từ{" "}
+                        <code>/api/gas/latest</code>,{" "}
+                        <code>/api/gas/analysis</code> và{" "}
+                        <code>/api/gas/incidents/24h</code>.
+                    </div>
+                    <div>
+                        • Ngưỡng Blynk (V2) hiện tại:{" "}
+                        <strong>{hardThreshold} ppm</strong>.
+                    </div>
+                    <div>
+                        • Ngưỡng AI (mean + 3σ, clamp):{" "}
+                        <strong>
+                            {smartThreshold == null
+                                ? "—"
+                                : `${smartThreshold.toFixed(1)} ppm`}
+                        </strong>{"."}
+                    </div>
+                    <div>
+                        • BiLSTM đang đánh giá chuỗi {aiAnalysis?.seqLen ?? "—"}{" "}
+                        mẫu với xác suất rò rỉ được cập nhật theo thời gian
+                        thực.
+                    </div>
                 </div>
             </div>
 
+            {/* Biểu đồ + thống kê chi tiết */}
             <GasChart
                 data={history}
                 threshold={hardThreshold}
@@ -141,6 +151,7 @@ export default function Dashboard() {
                 history={history}
                 threshold={hardThreshold}
                 aiAnalysis={aiAnalysis}
+                incidentSummary={incidentSummary}
             />
         </div>
     );

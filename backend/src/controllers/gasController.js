@@ -1,22 +1,79 @@
-// backend/src/controllers/gasController.js
 import GasReading from "../models/GasReading.js";
+import GasIncident from "../models/GasIncident.js";
 
-// ==== Cấu hình AI / ngưỡng ====
 const AI_BASE_URL = process.env.AI_SERVICE_URL;
 const AI_SEQ_LEN = Number(process.env.AI_SEQ_LEN);
-const NUM_FEATURES = 2; // [gasValue, rawAdc]
+const NUM_FEATURES = 2;
 
-// Ngưỡng cứng hiện đang dùng ở Blynk (slider V2)
 const HARD_THRESHOLD = Number(process.env.GAS_HARD_THRESHOLD);
 
-// Ngưỡng xác suất để coi là leak “chắc cú”
 const PROB_TH = Number(process.env.AI_PROB_THRESHOLD);
 
-// Giới hạn cho ngưỡng AI
 const MIN_T = Number(process.env.AI_MIN_DYNAMIC_THRESHOLD);
 const MAX_T = Number(process.env.AI_MAX_DYNAMIC_THRESHOLD);
 
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+
+// Quản lý chuỗi rò rỉ dựa trên systemStatus
+async function upsertIncident({ deviceId, lastGas, aiResult, systemStatus }) {
+    const now = new Date();
+    const bad = systemStatus.severity === "WARNING" || systemStatus.severity === "DANGER";
+
+    const prob = aiResult?.prob_leak ?? null;
+
+    let openIncident = await GasIncident.findOne({
+        deviceId,
+        isOpen: true,
+    }).sort({ startTime: -1 });
+
+    if (!bad) {
+        if (openIncident) {
+            openIncident.isOpen = false;
+            openIncident.endTime = now;
+            await openIncident.save();
+        }
+        return;
+    }
+
+    if (!openIncident) {
+        await GasIncident.create({
+            deviceId,
+            mode: systemStatus.mode,
+            severity: systemStatus.severity,
+            startTime: now,
+            endTime: now,
+            isOpen: true,
+            maxGas: lastGas,
+            maxProbLeak: prob,
+        });
+        return;
+    }
+
+    openIncident.endTime = now;
+
+    // nếu severity mới mạnh hơn thì nâng lên
+    if (systemStatus.severity === "DANGER") {
+        openIncident.severity = "DANGER";
+    }
+
+    openIncident.mode = systemStatus.mode;
+
+    if (lastGas > openIncident.maxGas) {
+        openIncident.maxGas = lastGas;
+    }
+
+    if (prob != null) {
+        if (
+            openIncident.maxProbLeak == null ||
+            prob > openIncident.maxProbLeak
+        ) {
+            openIncident.maxProbLeak = prob;
+        }
+    }
+
+    await openIncident.save();
+}
+
 
 // ==== Gọi sang BiLSTM API ====
 async function callBiLstm(window) {
@@ -35,7 +92,7 @@ async function callBiLstm(window) {
             return null;
         }
 
-        const data = await resp.json(); // { prob_leak, label }
+        const data = await resp.json();
         return data;
     } catch (error) {
         console.error("Cannot call AI service:", error);
@@ -110,7 +167,7 @@ export const getGasAnalysis = async (req, res) => {
             });
         }
 
-        const history = docs.slice().reverse(); // thời gian tăng dần
+        const history = docs.slice().reverse();
         const values = history.map((d) => d.gasValue);
         const n = values.length;
 
@@ -121,7 +178,7 @@ export const getGasAnalysis = async (req, res) => {
             Math.max(n, 1);
         const std = Math.sqrt(variance);
 
-        // Ngưỡng AI: mean + 3σ, clamp để tránh quá vô lý
+        // Ngưỡng AI: mean + 3σ
         let dynamicThreshold = mean + 3 * std;
         if (!Number.isFinite(dynamicThreshold)) dynamicThreshold = HARD_THRESHOLD;
         dynamicThreshold = clamp(dynamicThreshold, MIN_T, MAX_T);
@@ -190,6 +247,20 @@ export const getGasAnalysis = async (req, res) => {
             };
         }
 
+        const incidentDeviceId =
+            deviceId || history.at(-1)?.deviceId || "default-device";
+
+        try {
+            await upsertIncident({
+                deviceId: incidentDeviceId,
+                lastGas,
+                aiResult,
+                systemStatus,
+            });
+        } catch (e) {
+            console.error("Không thể cập nhật GasIncident:", e);
+        }
+
         return res.json({
             deviceId: deviceId || null,
             count: n,
@@ -202,6 +273,52 @@ export const getGasAnalysis = async (req, res) => {
         });
     } catch (error) {
         console.error("Error in getGasAnalysis:", error);
+        return res.status(500).json({ message: "Server error" });
+    }
+
+
+};
+
+// Lấy danh sách chuỗi rò rỉ trong 24h gần nhất
+export const getLeakIncidents24h = async (req, res) => {
+    try {
+        const { deviceId } = req.query;
+
+        const now = new Date();
+        const from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+        const query = {
+            startTime: { $gte: from },
+            // chỉ lấy các mode có liên quan rò rỉ
+            mode: { $in: ["LEAK_CONFIRMED", "EARLY_WARNING", "HIGH_GAS"] },
+        };
+
+        if (deviceId) {
+            query.deviceId = deviceId;
+        }
+
+        const incidents = await GasIncident.find(query).sort({ startTime: -1 });
+
+        // Một vài thống kê nhanh
+        const total = incidents.length;
+        const totalDanger = incidents.filter(
+            (i) => i.severity === "DANGER"
+        ).length;
+        const maxGasPeak = incidents.reduce(
+            (mx, i) => Math.max(mx, i.maxGas ?? 0),
+            0
+        );
+
+        return res.json({
+            from,
+            to: now,
+            totalIncidents: total,
+            dangerIncidents: totalDanger,
+            maxGasPeak,
+            incidents,
+        });
+    } catch (error) {
+        console.error("Error in getLeakIncidents24h:", error);
         return res.status(500).json({ message: "Server error" });
     }
 };

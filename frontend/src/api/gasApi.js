@@ -16,9 +16,9 @@ export const fetchGasData = async (limit = 500) => {
 
     const history = arr.map((item) => ({
         id: item._id,
-        deviceId: item.deviceId,
         gas: item.gasValue,
         rawAdc: item.rawAdc,
+        deviceId: item.deviceId,
         timestamp: item.createdAt,
     }));
 
@@ -32,4 +32,11 @@ export const fetchGasAnalysis = async () => {
     const url = `${API_BASE_URL}/api/gas/analysis`;
     const res = await axios.get(url);
     return res.data; // { baseline, dynamicThreshold, hardThreshold, ai, system, ... }
+};
+
+// Thống kê các chuỗi rò rỉ trong 24h gần nhất
+export const fetchLeakIncidents24h = async () => {
+    const url = `${API_BASE_URL}/api/gas/incidents/24h`;
+    const res = await axios.get(url);
+    return res.data; // { from, to, totalIncidents, dangerIncidents, maxGasPeak, incidents: [...] }
 };

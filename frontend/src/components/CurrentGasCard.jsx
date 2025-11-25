@@ -8,6 +8,17 @@ function getStatusByThreshold(gas, threshold = 300) {
     return { text: "Nguy hiểm!", color: "#ef4444" };
 }
 
+function formatTime(ts) {
+    if (!ts) return "—";
+    const d = new Date(ts);
+    return d.toLocaleTimeString("vi-VN", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+    });
+}
+
 export default function CurrentGasCard({
     gas,
     timestamp,
@@ -16,77 +27,115 @@ export default function CurrentGasCard({
     ai,
     system,
 }) {
-    const byHard = getStatusByThreshold(gas, hardThreshold);
+    const status = getStatusByThreshold(gas, hardThreshold);
+    const probLeak = ai?.prob_leak ?? null;
+    const probPercent =
+        typeof probLeak === "number" ? (probLeak * 100).toFixed(1) + " %" : "—";
 
-    const aiProb =
-        ai && typeof ai.prob_leak === "number"
-            ? (ai.prob_leak * 100).toFixed(1)
-            : null;
+    let probColor = "#22c55e";
+    if (probLeak != null && probLeak >= 0.7) probColor = "#ef4444";
+    else if (probLeak != null && probLeak >= 0.4) probColor = "#eab308";
 
-    let systemColor = "#9ca3af";
+    let systemColor = "#22c55e";
+    if (system?.severity === "WARNING") systemColor = "#eab308";
     if (system?.severity === "DANGER") systemColor = "#ef4444";
-    else if (system?.severity === "WARNING") systemColor = "#eab308";
-    else if (system?.severity === "OK") systemColor = "#22c55e";
 
     return (
         <div
             style={{
                 padding: 16,
                 borderRadius: 12,
-                background: "#1f2933",
-                color: "#f9fafb",
-                boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                background: "#020617",
+                border: "1px solid #1f2937",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                height: "100%",
             }}
         >
-            <h2 style={{ marginBottom: 8 }}>Nồng độ khí gas hiện tại</h2>
-
-            <div style={{ fontSize: 32, fontWeight: "bold" }}>
-                {gas != null ? gas.toFixed(1) : "..."}{" "}
-                <span style={{ fontSize: 18 }}>ppm</span>
+            <div style={{ fontSize: 18, fontWeight: 600 }}>
+                Nồng độ khí gas hiện tại
             </div>
 
-            <div style={{ marginTop: 8 }}>
-                Trạng thái (ngưỡng Blynk):{" "}
-                <span style={{ fontWeight: "bold", color: byHard.color }}>
-                    {byHard.text}
-                </span>
+            <div style={{ fontSize: 36, fontWeight: 700 }}>
+                {gas != null ? gas.toFixed(1) : "--"}{" "}
+                <span style={{ fontSize: 16, opacity: 0.7 }}>ppm</span>
             </div>
 
-            {timestamp && (
-                <div style={{ marginTop: 4, fontSize: 12, opacity: 0.7 }}>
-                    Cập nhật: {new Date(timestamp).toLocaleTimeString()}
-                </div>
-            )}
+            <div style={{ fontSize: 13, opacity: 0.8 }}>
+                Cập nhật lúc: {formatTime(timestamp)}
+            </div>
 
-            {hardThreshold && (
-                <div style={{ marginTop: 4, fontSize: 12, opacity: 0.7 }}>
-                    Ngưỡng cảnh báo đang dùng (Blynk): {hardThreshold} ppm
-                </div>
-            )}
-
-            {smartThreshold && (
-                <div style={{ marginTop: 4, fontSize: 12, opacity: 0.7 }}>
-                    Ngưỡng AI gợi ý (mean + 3σ): {Math.round(smartThreshold)} ppm
-                </div>
-            )}
-
-            {aiProb && (
-                <div style={{ marginTop: 8, fontSize: 13 }}>
-                    Xác suất rò rỉ (BiLSTM): <b>{aiProb}%</b>
-                </div>
-            )}
-
-            {system && (
-                <div style={{ marginTop: 4, fontSize: 13 }}>
-                    Trạng thái hệ thống (tổng hợp):{" "}
-                    <span style={{ fontWeight: "bold", color: systemColor }}>
-                        {system.mode}
+            <div
+                style={{
+                    marginTop: 4,
+                    padding: 8,
+                    borderRadius: 8,
+                    background: "#020617",
+                    border: "1px solid #1f2937",
+                    fontSize: 13,
+                }}
+            >
+                <div style={{ marginBottom: 4 }}>
+                    Trạng thái (ngưỡng Blynk):{" "}
+                    <span style={{ fontWeight: 600, color: status.color }}>
+                        {status.text}
                     </span>
-                    <div style={{ marginTop: 2, fontSize: 12, opacity: 0.9 }}>
-                        {system.message}
-                    </div>
                 </div>
-            )}
+                <div style={{ fontSize: 12, opacity: 0.85 }}>
+                    Ngưỡng cảnh báo đang dùng (Blynk):{" "}
+                    <strong>{hardThreshold ?? 300} ppm</strong>
+                    <br />
+                    Ngưỡng AI gợi ý:{" "}
+                    <strong>
+                        {smartThreshold != null
+                            ? `${smartThreshold.toFixed(0)} ppm`
+                            : "—"}
+                    </strong>
+                </div>
+            </div>
+
+            <div
+                style={{
+                    marginTop: 4,
+                    padding: 8,
+                    borderRadius: 8,
+                    background: "#020617",
+                    border: "1px solid #1f2937",
+                    fontSize: 13,
+                }}
+            >
+                <div>
+                    Xác suất rò rỉ (BiLSTM):{" "}
+                    <span style={{ fontWeight: 600, color: probColor }}>
+                        {probPercent}
+                    </span>
+                </div>
+
+                {system && (
+                    <div style={{ marginTop: 4 }}>
+                        Trạng thái hệ thống (tổng hợp):{" "}
+                        <span
+                            style={{
+                                fontWeight: 700,
+                                color: systemColor,
+                                textTransform: "uppercase",
+                            }}
+                        >
+                            {system.mode}
+                        </span>
+                        <div
+                            style={{
+                                marginTop: 2,
+                                fontSize: 12,
+                                opacity: 0.9,
+                            }}
+                        >
+                            {system.message}
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
